@@ -180,7 +180,7 @@ final class Paibao_AI_Operations_Admin {
 	}
 
 	private static function render_marketplace_entry(): void {
-		$url = 'https://marketplace.paibao.ai/products/' . self::MARKETPLACE_PRODUCT;
+		$url = 'https://marketplace.paibao.ai/plugins/' . self::MARKETPLACE_PRODUCT;
 		?>
 		<div class="notice notice-info inline">
 			<p><strong><?php echo esc_html__( '尚未连接 WordPress AI 运营官', 'paibao-ai-operator' ); ?></strong></p>
@@ -291,7 +291,7 @@ final class Paibao_AI_Operations_Admin {
 		);
 		if ( ! isset( $messages[ $notice ] ) ) {
 			if ( 'entitlement' === $notice ) {
-				$url = 'https://marketplace.paibao.ai/products/' . self::MARKETPLACE_PRODUCT;
+				$url = 'https://marketplace.paibao.ai/plugins/' . self::MARKETPLACE_PRODUCT;
 				printf( '<div class="notice notice-warning"><p>%s <a href="%s" rel="noopener noreferrer">%s</a></p></div>', esc_html__( '当前服务授权不足，请在 Marketplace 购买或续费。', 'paibao-ai-operator' ), esc_url( $url ), esc_html__( '前往 Marketplace', 'paibao-ai-operator' ) );
 			}
 			return;

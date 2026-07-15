@@ -40,6 +40,8 @@ test('server proxy is fixed to the real site-bound control-plane routes', async 
   assert.match(source, /(?:response_code\s*===\s*401|401\s*!==\s*\$response_code)/);
   assert.match(source, /force_refresh/);
   assert.match(source, /ai-operations-entitlement-required/);
+	assert.match(source, /https:\/\/marketplace\.paibao\.ai\/plugins\//);
+	assert.doesNotMatch(source, /marketplace\.paibao\.ai\/products\//);
 });
 
 test('admin writes require capability, nonce, same origin, strict fields, confirmation, and idempotency', async () => {
