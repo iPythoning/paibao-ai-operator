@@ -1,64 +1,72 @@
-=== Paibao AI Operator ===
+=== Paibao AI Operations Officer ===
 Contributors: paibao
-Tags: ai, seo, content, geo, structured-data
-Requires at least: 6.0
+Tags: ai, seo, geo, content-operations, structured-data
+Requires at least: 6.4
 Tested up to: 7.0
-Requires PHP: 7.4
-Stable tag: 0.1.0
+Requires PHP: 8.1
+Stable tag: 0.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Generate GEO-optimized, fact-dense B2B articles with Article/FAQPage JSON-LD and stage them as drafts. Connects to the Paibao AI Operator service.
+Review and approve site-bound content, SEO and GEO operations from WordPress.
 
 == Description ==
 
-Paibao AI Operator is an open-core thin client. It turns a topic into a publish-ready,
-GEO-optimized article — inverted-pyramid lead, a comparison table, buyer FAQs, and
-auto-generated Article + FAQPage JSON-LD — and stages it as a draft for your review.
+Paibao AI Operations Officer is the GPL WordPress bridge and administrator console for the separately hosted Paibao AI Operations service.
 
-The generation engine (dynamic knowledge base, expert interview, fact grounding) runs in
-the hosted Paibao service. This plugin connects to it with a license key, fetches the
-generated content, and places it into WordPress. Your content stays in your WordPress.
+It provides:
 
-= What it does =
+* A dedicated, site-bound REST bridge for content, SEO and GEO operations.
+* Change summaries and risk status inside WordPress admin.
+* Explicit administrator approval before execution.
+* Transactional audit snapshots and administrator-requested rollback.
+* Managed canonical, hreflang, Open Graph, Twitter and approved JSON-LD output.
+* Visible direct answers, facts, sources and review dates for GEO evidence.
 
-* Generate multilingual drafts from a topic (or auto-suggested from your knowledge base)
-* Inject Article / FAQPage JSON-LD into the post `<head>` for AI-search visibility
-* Everything is staged as a **draft** — nothing is published without your review
+The plugin does not contain the hosted planning engine, entitlement system or Marketplace billing. The GPL license to use and modify this plugin does not grant authorization to the Paibao SaaS service. A paid or otherwise valid service entitlement may be required by the control plane when a proposal is created or approved.
 
-= Account =
+== External service ==
 
-A Paibao AI Operator license key is required to generate content. Visit
-https://paibao.ai/operator to get one. The plugin sends your topic/market/language
-choices to the service and receives the generated article back.
+This plugin connects to https://marketplace.paibao.ai to exchange a server-managed, site-bound credential for a short-lived session and to create, read, approve or roll back AI Operations jobs.
+
+Depending on the administrator's request, the Paibao service can receive the site's tenant/site binding, canonical site origin, task goal and scope, content records and managed SEO/GEO fields needed to plan a change, plus mutation and public-page verification results. The service returns connection data, job state, change summaries and verification evidence. These transfers are required for the managed service to operate.
+
+Long-lived site credentials are installed by the managed host and are not shown in WordPress admin. Short-lived session credentials remain in PHP request memory and are not stored in WordPress or sent to the browser.
+
+Service information, terms and privacy: https://paibao.ai/legal
 
 == Installation ==
 
-1. Upload the plugin to `/wp-content/plugins/` or install via the Plugins screen.
-2. Activate it.
-3. Open **AI Operator** in the admin menu, paste your license key, and Save.
-4. Enter a topic and click **Generate draft**.
+1. Confirm WordPress 6.4+, PHP 8.1+, HTTPS and InnoDB are available.
+2. Install and activate the plugin through the Paibao managed deployment process.
+3. Complete the site binding and service-user provisioning. Customers do not paste a token or Application Password.
+4. Open AI 运营官 in WordPress admin. If service authorization is missing, use the fixed Marketplace purchase or renewal entry.
+
+Do not enable another plugin that manages canonical/SEO output for the same content. Paibao fails closed when Yoast, Rank Math, AIOSEO or SEOPress is detected.
 
 == Frequently Asked Questions ==
 
-= Is my content sent to a third party? =
+= Does installing the GPL plugin include the hosted service? =
 
-The plugin sends the topic, target market, and language selection you enter to the Paibao
-AI Operator service ( https://paibao.ai ) to generate the article, and receives the article
-back. No post content is sent except what you ask it to generate. See the privacy section.
+No. The plugin license covers this WordPress code. Hosted orchestration, Marketplace billing and managed service authorization are separate.
 
-= Do I need an account? =
+= Can a task publish or roll back automatically from the WordPress admin page? =
 
-Yes — a license key from https://paibao.ai/operator is required.
+No. Approve and rollback each require an administrator POST, a WordPress nonce and an explicit confirmation checkbox. A transport error is reported as “result pending confirmation” so the plugin does not blindly repeat an action.
 
-== Privacy ==
+= Can an expired subscription still view history or request rollback? =
 
-This plugin connects to the external Paibao AI Operator service to generate content. The
-topic, target market, and language values you submit are sent to that service over HTTPS,
-authenticated with your license key. The generated article is returned and stored as a
-draft in your WordPress. Service: https://paibao.ai — Terms/Privacy: https://paibao.ai/legal
+History and rollback remain available for a valid site binding. Creating a proposal and approving execution are checked against current service authorization.
+
+= Where are credentials stored? =
+
+The site credential is supplied through server configuration. Five-minute AI sessions remain only in PHP memory. The dedicated WordPress Application Password is held by the managed control plane and is not displayed in this plugin.
 
 == Changelog ==
 
-= 0.1.0 =
-* Initial release: license-key connection, multilingual draft generation, JSON-LD injection.
+= 0.2.2 =
+
+* Added the GPL clean-room native WordPress bridge.
+* Added transactional CAS, idempotency, audit snapshots and rollback.
+* Added zero-copy short-lived session exchange and the administrator approval console.
+* Added managed SEO/GEO output and deterministic release verification.
