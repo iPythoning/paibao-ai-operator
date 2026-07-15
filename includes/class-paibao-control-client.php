@@ -213,7 +213,7 @@ final class Paibao_AI_Operations_Control_Client {
 		if ( ! is_array( $origin ) || 'https' !== ( $origin['scheme'] ?? '' ) || empty( $origin['host'] ) || isset( $origin['user'], $origin['pass'], $origin['query'], $origin['fragment'] ) ) {
 			throw new Paibao_AI_Operations_Error( '站点必须使用规范 HTTPS 域名。' );
 		}
-		$port = isset( $origin['port'] ) ? ':' . (int) $origin['port'] : '';
+		$port = isset( $origin['port'] ) && 443 !== (int) $origin['port'] ? ':' . (int) $origin['port'] : '';
 		return array( 'site_id' => $site_id, 'site_origin' => 'https://' . strtolower( $origin['host'] ) . $port );
 	}
 

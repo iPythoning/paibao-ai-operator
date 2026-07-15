@@ -43,19 +43,21 @@ final class Paibao_AI_Operations_Admin {
 	}
 
 	public static function handle_proposal(): void {
+		$request_id = '';
 		try {
-			self::assert_admin_post( 'paibao_ai_operations_proposal', array( 'action', '_wpnonce', '_wp_http_referer', 'paibao_goal', 'paibao_scope' ) );
+			self::assert_admin_post( 'paibao_ai_operations_proposal', array( 'action', '_wpnonce', '_wp_http_referer', 'paibao_goal', 'paibao_scope', 'paibao_request_id' ) );
+			$request_id = self::uuid( self::post_string( 'paibao_request_id' ) );
 			$goal  = trim( self::control_text( self::post_string( 'paibao_goal' ), 2000 ) );
 			$scope = self::post_string( 'paibao_scope' );
 			if ( '' === $goal || ! in_array( $scope, array( 'audit', 'content' ), true ) ) {
 				throw new Paibao_AI_Operations_Error( '提案内容无效。' );
 			}
-			$paibao_idempotency_key = self::stable_idempotency_key( 'proposal', $scope . "\n" . $goal );
+			$paibao_idempotency_key = self::stable_idempotency_key( 'proposal', $request_id );
 			$result = self::client()->propose( $goal, $scope, $paibao_idempotency_key );
 			$job = is_array( $result['job'] ?? null ) ? self::sanitize_job_detail( $result['job'] ) : null;
 			self::redirect( 'requested', is_array( $job ) ? $job['id'] : '' );
 		} catch ( Throwable $error ) {
-			self::redirect( self::notice_for_error( $error ) );
+			self::redirect( self::notice_for_error( $error ), '', $request_id );
 		}
 	}
 
@@ -144,6 +146,9 @@ final class Paibao_AI_Operations_Admin {
 		}
 		$notice = isset( $_GET['paibao_notice'] ) && is_string( $_GET['paibao_notice'] ) ? sanitize_key( wp_unslash( $_GET['paibao_notice'] ) ) : '';
 		$job_id = isset( $_GET['job'] ) && is_string( $_GET['job'] ) ? strtolower( sanitize_text_field( wp_unslash( $_GET['job'] ) ) ) : '';
+		$request_id = isset( $_GET['paibao_request_id'] ) && is_string( $_GET['paibao_request_id'] ) && 1 === preg_match( self::UUID, $_GET['paibao_request_id'] )
+			? strtolower( $_GET['paibao_request_id'] )
+			: '';
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Paibao AI 运营官', 'paibao-ai-operator' ); ?></h1>
@@ -161,7 +166,7 @@ final class Paibao_AI_Operations_Admin {
 			try {
 				$overview = self::sanitize_overview( self::client()->overview() );
 				self::render_connection( $overview['site'] );
-				self::render_proposal_form();
+				self::render_proposal_form( $request_id );
 				if ( 1 === preg_match( self::UUID, $job_id ) ) {
 					self::render_job_detail( self::sanitize_job_detail( self::client()->job( $job_id ) ) );
 				}
@@ -203,11 +208,15 @@ final class Paibao_AI_Operations_Admin {
 		<?php
 	}
 
-	private static function render_proposal_form(): void {
+	private static function render_proposal_form( string $request_id = '' ): void {
+		if ( 1 !== preg_match( self::UUID, $request_id ) ) {
+			$request_id = strtolower( wp_generate_uuid4() );
+		}
 		?>
 		<h2><?php echo esc_html__( '创建运营任务', 'paibao-ai-operator' ); ?></h2>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width:900px">
 			<input type="hidden" name="action" value="paibao_ai_operations_proposal" />
+			<input type="hidden" name="paibao_request_id" value="<?php echo esc_attr( $request_id ); ?>" />
 			<?php wp_nonce_field( 'paibao_ai_operations_proposal' ); ?>
 			<p><label for="paibao-goal"><strong><?php echo esc_html__( '目标', 'paibao-ai-operator' ); ?></strong></label></p>
 			<textarea id="paibao-goal" name="paibao_goal" rows="5" maxlength="2000" class="large-text" required></textarea>
@@ -454,9 +463,13 @@ final class Paibao_AI_Operations_Admin {
 		return self::$client;
 	}
 
-	private static function redirect( string $notice, string $job_id = '' ): never {
+	private static function redirect( string $notice, string $job_id = '', string $request_id = '' ): never {
 		$url = self::page_url( 1 === preg_match( self::UUID, $job_id ) ? $job_id : '' );
-		wp_safe_redirect( add_query_arg( 'paibao_notice', $notice, $url ), 303 );
+		$args = array( 'paibao_notice' => $notice );
+		if ( 1 === preg_match( self::UUID, $request_id ) ) {
+			$args['paibao_request_id'] = strtolower( $request_id );
+		}
+		wp_safe_redirect( add_query_arg( $args, $url ), 303 );
 		exit;
 	}
 

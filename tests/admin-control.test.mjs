@@ -51,9 +51,19 @@ test('admin writes require capability, nonce, same origin, strict fields, confir
   assert.match(source, /paibao_confirm/);
   assert.match(source, /paibao_idempotency_key/);
   assert.match(source, /stable_idempotency_key/);
+	assert.match(source, /name="paibao_request_id"/);
+	assert.match(source, /wp_generate_uuid4\(\)/);
+	assert.match(source, /stable_idempotency_key\(\s*'proposal'\s*,\s*\$request_id\s*\)/);
+	assert.match(source, /redirect\(\s*self::notice_for_error\(\s*\$error\s*\)\s*,\s*''\s*,\s*\$request_id\s*\)/);
+	assert.doesNotMatch(source, /stable_idempotency_key\(\s*'proposal'\s*,\s*\$scope/);
   assert.match(source, /16384/);
   assert.match(source, /2000/);
   assert.doesNotMatch(source, /wp_ajax_/);
+});
+
+test('canonicalizes the default HTTPS port consistently across the control client and native bridge', async () => {
+	const source = await shippedPhpSource();
+	assert.equal(source.match(/443\s*!==\s*\(int\)\s*\$(?:origin|home)\['port'\]/g)?.length, 2);
 });
 
 test('admin page renders only sanitized summaries and explicit proposal, approval, and rollback controls', async () => {
