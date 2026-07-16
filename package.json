@@ -1,0 +1,15 @@
+{
+  "name": "paibao-ai-operator-wordpress",
+  "version": "0.2.3",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-release.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "lint:php": "node --test tests/php-syntax.test.mjs",
+    "check": "npm run lint:php && npm test"
+  },
+  "devDependencies": {
+    "php-parser": "3.7.0"
+  }
+}

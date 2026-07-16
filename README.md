@@ -1,51 +1,48 @@
-# Paibao AI Operator (WordPress plugin)
+# Paibao AI Operations Officer for WordPress
 
-<!-- bmc:front -->
-<p align="center"><a href="https://buymeacoffee.com/dayongfan"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&amp;emoji=&amp;slug=dayongfan&amp;button_colour=FFDD00&amp;font_colour=000000&amp;font_family=Cookie&amp;outline_colour=000000&amp;coffee_colour=ffffff" alt="Buy me a coffee"></a></p>
-<!-- /bmc:front -->
+GPL-2.0-or-later WordPress bridge and administrator approval console for the Paibao AI Operations managed service.
 
-Open-core thin client for the **Paibao AI Operator** — generate GEO-optimized, fact-dense
-B2B articles (with Article/FAQPage JSON-LD) and stage them as WordPress drafts.
+The plugin provides two first-party surfaces:
 
-The generation engine (dynamic knowledge base, expert interview, GEO grounding) runs in the
-hosted service. This plugin connects with a **license key**, fetches generated content in
-*pull mode*, and places it into WordPress. No engine code or proprietary knowledge ships here.
+- a site-bound REST bridge for controlled content, SEO and GEO changes;
+- an administrator page for creating proposals, reviewing change summaries, explicitly approving execution and requesting rollback.
 
-## How it works
+The hosted planning, orchestration, entitlement, billing and verification service is not included. The GPL license for this plugin does not create or grant a Paibao SaaS subscription.
 
+## Security contract
+
+- Customers never paste a service token into WordPress.
+- The managed host injects a site-bound `st_` credential through server configuration. It is exchanged for a five-minute `aio_` session in PHP memory; the session is never persisted or sent to the browser.
+- The control plane reaches the bridge with a dedicated WordPress user, dedicated `paibao_ai_operator` role and Application Password. That identity is restricted to `paibao-ai-operations/v1` and cannot use XML-RPC.
+- Mutations require opaque CAS (`If-Match`), deterministic idempotency, an InnoDB transaction, before/after revisions and a transactional audit record.
+- Approve and rollback are only initiated by explicit administrator POST forms guarded by capability, nonce, same-origin validation, exact fields and confirmation.
+- Arbitrary scripts are not supported. Managed SEO/GEO is schema-limited and conflicts with Yoast, Rank Math, AIOSEO or SEOPress fail closed.
+
+## Managed installation
+
+Requirements: WordPress 6.4+, PHP 8.1+, MySQL/MariaDB with InnoDB, HTTPS and a Paibao-managed site binding.
+
+The managed installer defines these server-side constants without exposing their values in the CMS:
+
+```php
+define( 'PAIBAO_AI_OPERATIONS_TENANT_ID', getenv( 'PAIBAO_AI_OPERATIONS_TENANT_ID' ) );
+define( 'PAIBAO_AI_OPERATIONS_SITE_ID', getenv( 'PAIBAO_AI_OPERATIONS_SITE_ID' ) );
+define( 'PAIBAO_AI_OPERATIONS_LOCALE', getenv( 'PAIBAO_AI_OPERATIONS_LOCALE' ) );
+define( 'PAIBAO_MARKETPLACE_SITE_TOKEN', getenv( 'PAIBAO_MARKETPLACE_SITE_TOKEN' ) );
 ```
-WP admin "AI Operator" page
-  → POST {topic, languages, market} + X-License-Key
-  → https://console.paibao.ai/api/operator/generate   (hosted engine, tier-gated)
-  → returns drafts: [{ title, slug, html, markdown, jsonld, excerpt, locale }]
-  → wp_insert_post(draft) + post_meta(_paibao_jsonld)
-  → wp_head injects <script type="application/ld+json">
+
+Activation creates the dedicated role and transactional audit tables. Provisioning then creates a service user with only that role and stores its Application Password in the Paibao control plane. It must not be shown to customers or reused by another integration.
+
+## Verification
+
+```sh
+npm ci
+npm run check
+npm run build
 ```
 
-- Content body uses the returned HTML (the embedded JSON-LD `<script>` is stripped by
-  `wp_kses_post`; JSON-LD is re-emitted in `<head>` from post meta).
-- Everything is staged as **draft** — nothing publishes without review.
+`npm run build` creates a deterministic ZIP, SHA-256 checksum, release manifest and static security audit under `dist/`.
 
-<!-- bmc:middle -->
-<p align="center"><a href="https://buymeacoffee.com/dayongfan"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&amp;emoji=&amp;slug=dayongfan&amp;button_colour=FFDD00&amp;font_colour=000000&amp;font_family=Cookie&amp;outline_colour=000000&amp;coffee_colour=ffffff" alt="Buy me a coffee"></a></p>
-<!-- /bmc:middle -->
+## License and service boundary
 
-## Install (dev)
-
-Copy this folder to `wp-content/plugins/paibao-ai-operator/`, activate, then set your
-license key under **AI Operator → Connection**.
-
-## Settings
-
-| Setting | Default | Notes |
-|---|---|---|
-| License key | — | from https://paibao.ai/operator |
-| Service URL | `https://console.paibao.ai` | the hosted operator endpoint |
-
-## License
-
-GPL-2.0-or-later. See `LICENSE`.
-
-<!-- bmc:end -->
-<p align="center"><a href="https://buymeacoffee.com/dayongfan"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&amp;emoji=&amp;slug=dayongfan&amp;button_colour=FFDD00&amp;font_colour=000000&amp;font_family=Cookie&amp;outline_colour=000000&amp;coffee_colour=ffffff" alt="Buy me a coffee"></a></p>
-<!-- /bmc:end -->
+Plugin code is licensed under GPL-2.0-or-later; see `LICENSE`. Paibao control-plane code, hosted AI operations, Marketplace billing and managed support are separate proprietary services governed by their service terms.
