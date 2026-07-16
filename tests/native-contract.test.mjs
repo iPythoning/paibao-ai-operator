@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { root, shippedPhpFiles, shippedPhpSource } from './source.mjs';
@@ -36,6 +37,22 @@ test('ships the reviewed 0.2.x atomic WordPress bridge contract', async () => {
   assert.match(source, /\$error->add\(\s*'paibao_operator_xmlrpc'/);
   assert.match(source, /is_string\(\s*\$app_uuid\s*\)/);
   assert.doesNotMatch(source, /\$app\[['"]uuid['"]\]/);
+});
+
+test('accepts the current planner SEO DTO without weakening managed metadata namespaces', async () => {
+  const source = await shippedPhpSource();
+  assert.match(source, /array\( 'title', 'description', 'type', 'url', 'image', 'siteName', 'locale', 'localeAlternate' \)/);
+  assert.match(source, /array\( 'card', 'title', 'description', 'image', 'site', 'creator' \)/);
+  assert.match(source, /'og:'\s*\.\s*\$key/);
+  assert.match(source, /'twitter:'\s*\.\s*\$key/);
+  assert.match(source, /array_diff\( array_keys\( \$value \), array\( '@context', '@graph' \) \)/);
+});
+
+test('runs the real WordPress mutation, publication, public output, and rollback lifecycle', async () => {
+  const source = await readFile(resolve(root, 'tests/wordpress-integration.php'), 'utf8');
+  for (const marker of ["'update'", "'publish'", "'restore'", 'render_head', 'render_visible_geo', 'WPSEO_VERSION']) {
+    assert.ok(source.includes(marker), `integration gate is missing ${marker}`);
+  }
 });
 
 test('keeps Marketplace site credentials server-only', async () => {

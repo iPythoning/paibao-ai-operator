@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paibao AI Operations Officer
  * Description: Site-bound WordPress bridge and approval console for Paibao AI Operations.
- * Version: 0.2.2
+ * Version: 0.2.3
  * Requires at least: 6.4
  * Requires PHP: 8.1
  * Author: Paibao
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'PAIBAO_AI_OPERATOR_VERSION', '0.2.2' );
+define( 'PAIBAO_AI_OPERATOR_VERSION', '0.2.3' );
 define( 'PAIBAO_AI_OPERATOR_FILE', __FILE__ );
 define( 'PAIBAO_AI_OPERATOR_DIR', plugin_dir_path( __FILE__ ) );
 

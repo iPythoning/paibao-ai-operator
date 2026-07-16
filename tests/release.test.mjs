@@ -20,7 +20,7 @@ test('builds a deterministic audited WordPress ZIP', async () => {
     const release = JSON.parse(await readFile(first.releasePath, 'utf8'));
     const audit = JSON.parse(await readFile(first.auditPath, 'utf8'));
     assert.equal(release.pluginId, 'paibao-ai-operator');
-    assert.equal(release.version, '0.2.2');
+    assert.equal(release.version, '0.2.3');
     assert.equal(release.runtime, 'wordpress-native');
     assert.equal(release.capability, 'ai_operations_wordpress_native_bridge');
     assert.equal(release.auditVerdict, 'pass');
@@ -86,7 +86,7 @@ test('release audit rejects raw PHP socket and curl egress', async () => {
 test('package and CI expose one reproducible release gate', async () => {
   const pkg = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
   const workflow = await readFile(resolve(root, '.github/workflows/quality.yml'), 'utf8').catch(() => '');
-  assert.equal(pkg.version, '0.2.2');
+  assert.equal(pkg.version, '0.2.3');
   assert.equal(pkg.scripts.build, 'node scripts/build-release.mjs');
   assert.equal(pkg.scripts.check, 'npm run lint:php && npm test');
   for (const marker of [

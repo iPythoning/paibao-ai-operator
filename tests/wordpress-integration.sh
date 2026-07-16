@@ -29,3 +29,4 @@ ln -s "$PLUGIN_ROOT" "$WP_ROOT/wp-content/plugins/paibao-ai-operator"
     }
   }
 '
+"$WP_CLI" eval-file "$PLUGIN_ROOT/tests/wordpress-integration.php" --path="$WP_ROOT"

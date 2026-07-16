@@ -4,7 +4,7 @@ Tags: ai, seo, geo, content-operations, structured-data
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.2.2
+Stable tag: 0.2.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -63,6 +63,11 @@ History and rollback remain available for a valid site binding. Creating a propo
 The site credential is supplied through server configuration. Five-minute AI sessions remain only in PHP memory. The dedicated WordPress Application Password is held by the managed control plane and is not displayed in this plugin.
 
 == Changelog ==
+
+= 0.2.3 =
+
+* Aligned managed Open Graph, Twitter and JSON-LD input with the current Paibao planner contract.
+* Added a full WordPress mutation, publication, public SEO/GEO and rollback integration gate.
 
 = 0.2.2 =
 

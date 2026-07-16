@@ -23,6 +23,12 @@ final class Paibao_AI_Operations_Native_Bridge {
 	private const VERSION_META = '_paibao_ai_operations_version';
 	private const MAX_REQUEST = 524288;
 	private const JSON_FLAGS = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+	private const JSON_LD_TYPES = array(
+		'Organization', 'WebSite', 'WebPage', 'Product', 'Article', 'FAQPage',
+		'BreadcrumbList', 'ListItem', 'Question', 'Answer', 'ImageObject',
+		'Offer', 'AggregateOffer', 'Brand', 'Person', 'PropertyValue',
+		'PostalAddress', 'ContactPoint', 'Rating', 'AggregateRating',
+	);
 
 	private static string $scoped_resource = '';
 
@@ -466,6 +472,9 @@ final class Paibao_AI_Operations_Native_Bridge {
 				$out[ $key ] = self::string_map( $value[ $key ], $key );
 			}
 		}
+		if ( isset( $out['twitter']['card'] ) && ! in_array( $out['twitter']['card'], array( 'summary', 'summary_large_image' ), true ) ) {
+			throw new Paibao_AI_Operations_Error( 'Twitter card is not managed.', 400 );
+		}
 		if ( array_key_exists( 'jsonLd', $value ) ) {
 			if ( ! is_array( $value['jsonLd'] ) || count( $value['jsonLd'] ) > 20 ) {
 				throw new Paibao_AI_Operations_Error( 'JSON-LD collection is invalid.', 400 );
@@ -529,8 +538,23 @@ final class Paibao_AI_Operations_Native_Bridge {
 	}
 
 	private static function validate_json_ld( mixed $value ): array {
-		$allowed = array( 'Organization', 'WebSite', 'Product', 'Article', 'FAQPage', 'BreadcrumbList' );
-		if ( ! is_array( $value ) || array_is_list( $value ) || ! isset( $value['@type'] ) || ! is_string( $value['@type'] ) || ! in_array( $value['@type'], $allowed, true ) ) {
+		if ( ! is_array( $value ) || array_is_list( $value ) ) {
+			throw new Paibao_AI_Operations_Error( 'JSON-LD type is not managed.', 400 );
+		}
+		if ( array_key_exists( '@graph', $value ) ) {
+			if ( 'https://schema.org' !== ( $value['@context'] ?? null ) ||
+				array_diff( array_keys( $value ), array( '@context', '@graph' ) ) ||
+				! is_array( $value['@graph'] ) || ! array_is_list( $value['@graph'] ) ||
+				empty( $value['@graph'] ) || count( $value['@graph'] ) > 100 ) {
+				throw new Paibao_AI_Operations_Error( 'JSON-LD graph is invalid.', 400 );
+			}
+			foreach ( $value['@graph'] as $node ) {
+				if ( ! is_array( $node ) || array_is_list( $node ) || ! self::valid_json_types( $node['@type'] ?? null ) ) {
+					throw new Paibao_AI_Operations_Error( 'JSON-LD graph type is not managed.', 400 );
+				}
+			}
+		} elseif ( ! self::valid_json_types( $value['@type'] ?? null ) ||
+			array_key_exists( '@context', $value ) && 'https://schema.org' !== $value['@context'] ) {
 			throw new Paibao_AI_Operations_Error( 'JSON-LD type is not managed.', 400 );
 		}
 		$clean = self::validate_json_value( $value );
@@ -541,23 +565,26 @@ final class Paibao_AI_Operations_Native_Bridge {
 		return $clean;
 	}
 
+	private static function valid_json_types( mixed $value ): bool {
+		$types = is_string( $value ) ? array( $value ) : $value;
+		return is_array( $types ) && array_is_list( $types ) && ! empty( $types ) && count( $types ) <= 10 &&
+			! array_filter( $types, static fn( mixed $type ): bool => ! is_string( $type ) || ! in_array( $type, self::JSON_LD_TYPES, true ) );
+	}
+
 	private static function validate_json_value( mixed $value, int $depth = 0, string $property = '' ): mixed {
 		if ( $depth > 10 ) {
 			throw new Paibao_AI_Operations_Error( 'JSON-LD nesting is too deep.', 400 );
+		}
+		if ( '@vocab' === $property || '@context' === $property && ( 1 !== $depth || 'https://schema.org' !== $value ) ) {
+			throw new Paibao_AI_Operations_Error( 'JSON-LD context is invalid.', 400 );
+		}
+		if ( '@type' === $property && ! self::valid_json_types( $value ) ) {
+			throw new Paibao_AI_Operations_Error( 'Nested JSON-LD type is not managed.', 400 );
 		}
 		if ( null === $value || is_bool( $value ) || is_int( $value ) || is_float( $value ) && is_finite( $value ) ) {
 			return $value;
 		}
 		if ( is_string( $value ) ) {
-			if ( '@context' === $property && 'https://schema.org' !== $value ) {
-				throw new Paibao_AI_Operations_Error( 'JSON-LD context is invalid.', 400 );
-			}
-			if ( '@type' === $property ) {
-				$types = array( 'Organization', 'WebSite', 'Product', 'Article', 'FAQPage', 'BreadcrumbList', 'Question', 'Answer', 'ListItem', 'Offer', 'AggregateOffer', 'Brand', 'ImageObject', 'Person', 'PostalAddress', 'ContactPoint', 'Rating', 'AggregateRating' );
-				if ( ! in_array( $value, $types, true ) ) {
-					throw new Paibao_AI_Operations_Error( 'Nested JSON-LD type is not managed.', 400 );
-				}
-			}
 			return self::text( $value, 0, 10000, 'jsonLd.' . $property );
 		}
 		if ( ! is_array( $value ) || count( $value ) > 100 ) {
@@ -706,28 +733,29 @@ final class Paibao_AI_Operations_Native_Bridge {
 			echo '<meta name="robots" content="noindex,follow" />' . "\n";
 		}
 		$open_graph = $seo['openGraph'] ?? array();
-		if ( isset( $seo['title'] ) && ! isset( $open_graph['og:title'] ) ) {
-			$open_graph['og:title'] = $seo['title'];
+		if ( isset( $seo['title'] ) && ! isset( $open_graph['title'] ) ) {
+			$open_graph['title'] = $seo['title'];
 		}
-		if ( isset( $seo['canonical'] ) && ! isset( $open_graph['og:url'] ) ) {
-			$open_graph['og:url'] = $seo['canonical'];
+		if ( isset( $seo['canonical'] ) && ! isset( $open_graph['url'] ) ) {
+			$open_graph['url'] = $seo['canonical'];
 		}
-		if ( isset( $seo['image'] ) && ! isset( $open_graph['og:image'] ) ) {
-			$open_graph['og:image'] = $seo['image'];
+		if ( isset( $seo['image'] ) && ! isset( $open_graph['image'] ) ) {
+			$open_graph['image'] = $seo['image'];
 		}
-		foreach ( $open_graph as $property => $content ) {
-			echo '<meta property="' . esc_attr( $property ) . '" content="' . esc_attr( $content ) . '" />' . "\n";
+		foreach ( $open_graph as $key => $content ) {
+			$key = array( 'siteName' => 'site_name', 'localeAlternate' => 'locale:alternate' )[ $key ] ?? $key;
+			echo '<meta property="' . esc_attr( 'og:' . $key ) . '" content="' . esc_attr( $content ) . '" />' . "\n";
 		}
 		$twitter = $seo['twitter'] ?? array();
-		if ( isset( $seo['title'] ) && ! isset( $twitter['twitter:title'] ) ) {
-			$twitter['twitter:title'] = $seo['title'];
+		if ( isset( $seo['title'] ) && ! isset( $twitter['title'] ) ) {
+			$twitter['title'] = $seo['title'];
 		}
-		if ( isset( $seo['image'] ) && ! isset( $twitter['twitter:image'] ) ) {
-			$twitter['twitter:image'] = $seo['image'];
-			$twitter['twitter:card'] = $twitter['twitter:card'] ?? 'summary_large_image';
+		if ( isset( $seo['image'] ) && ! isset( $twitter['image'] ) ) {
+			$twitter['image'] = $seo['image'];
+			$twitter['card'] = $twitter['card'] ?? 'summary_large_image';
 		}
-		foreach ( $twitter as $name => $content ) {
-			echo '<meta name="' . esc_attr( $name ) . '" content="' . esc_attr( $content ) . '" />' . "\n";
+		foreach ( $twitter as $key => $content ) {
+			echo '<meta name="' . esc_attr( 'twitter:' . $key ) . '" content="' . esc_attr( $content ) . '" />' . "\n";
 		}
 		foreach ( $seo['jsonLd'] ?? array() as $document ) {
 			$json = wp_json_encode( $document, self::JSON_FLAGS );
@@ -923,19 +951,31 @@ final class Paibao_AI_Operations_Native_Bridge {
 		if ( ! is_array( $value ) || array_is_list( $value ) || count( $value ) > 50 ) {
 			throw new Paibao_AI_Operations_Error( 'SEO map is invalid.', 400 );
 		}
+		$allowed = array(
+			'openGraph' => array( 'title', 'description', 'type', 'url', 'image', 'siteName', 'locale', 'localeAlternate' ),
+			'twitter' => array( 'card', 'title', 'description', 'image', 'site', 'creator' ),
+		);
+		$legacy = array(
+			'og:site_name' => 'siteName',
+			'og:locale:alternate' => 'localeAlternate',
+		);
 		$out = array();
 		foreach ( $value as $key => $entry ) {
 			if ( ! is_string( $key ) || 1 !== preg_match( '/^[A-Za-z0-9:_-]{1,64}$/', $key ) ) {
 				throw new Paibao_AI_Operations_Error( 'SEO map key is invalid.', 400 );
 			}
-			if ( 'openGraph' === $kind && ! str_starts_with( $key, 'og:' ) || 'twitter' === $kind && ! str_starts_with( $key, 'twitter:' ) ) {
+			if ( isset( $allowed[ $kind ] ) ) {
+				$prefix = 'openGraph' === $kind ? 'og:' : 'twitter:';
+				$key = $legacy[ $key ] ?? ( str_starts_with( $key, $prefix ) ? substr( $key, strlen( $prefix ) ) : $key );
+			}
+			if ( isset( $allowed[ $kind ] ) && ( ! in_array( $key, $allowed[ $kind ], true ) || array_key_exists( $key, $out ) ) ) {
 				throw new Paibao_AI_Operations_Error( 'SEO map namespace is invalid.', 400 );
 			}
 			if ( 'hreflang' === $kind ) {
 				$out[ $key ] = self::https_url( $entry, true );
-			} elseif ( in_array( $key, array( 'og:url' ), true ) ) {
+			} elseif ( 'openGraph' === $kind && 'url' === $key ) {
 				$out[ $key ] = self::https_url( $entry, true );
-			} elseif ( in_array( $key, array( 'og:image', 'twitter:image' ), true ) ) {
+			} elseif ( in_array( $kind, array( 'openGraph', 'twitter' ), true ) && 'image' === $key ) {
 				$out[ $key ] = self::https_url( $entry, false );
 			} else {
 				$out[ $key ] = self::text( $entry, 1, 2000, 'seo.map' );
